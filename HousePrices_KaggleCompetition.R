@@ -5,7 +5,7 @@
 
 # Reading in the datasets. 
 library(tidyverse)
-setwd('C:/Users/cathe/Desktop/SYS6018/HousePrices_KaggleCompetition')
+#setwd('C:/Users/cathe/Desktop/SYS6018/HousePrices_KaggleCompetition')
 train <- read_csv('train.csv')
 test <- read_csv('test.csv')
 
@@ -35,17 +35,9 @@ nas.cols
 # Naming the vector colums
 names(nas.cols) <- names(train)[1:80]
 
-# For the testing data
-nas.cols.ts <- as.vector(rep(0, 80))
-for(i in 1:80){
-  nas.cols.ts[i] <- sum(is.na(test[i]))
-}
-nas.cols.ts
-# Naming the vector colums
-names(nas.cols.ts) <- names(train)[1:80]
-nas.cols.ts[nas.cols.ts!=0]
 
-# Finding columns with NAs
+
+# Finding columns with NAs for train data
 with.nas <- nas.cols[nas.cols!=0]
 # 19 columns
 
@@ -122,8 +114,10 @@ b1.hat <- coefficients(model)[[2]]
 # Our fitted simple linear regression model is y.hat = 57.05504 + 0.001305799*x
 
 # Imputing missing values for LotFrontage
-train$LotFrontage[indices.nas] <- as.vector(as.integer(57.05504 + 0.001305799*train$LotArea[indices.nas]))
+# mz- deleted as.vector here, doesn't seem to make a difference
+train$LotFrontage[indices.nas] <- as.integer(57.05504 + 0.001305799*train$LotArea[indices.nas]) 
 train$LotFrontage <- as.integer(train$LotFrontage)
+
 
 
 # Because the number of rows with NA values is so low (9), we decided to delete the rows with 
@@ -187,10 +181,68 @@ model.3 <- lm(SalePrice ~ MSSubClass+MSZoning+LotArea+LotShape+LandContour+Neigh
                 SaleCondition,data=train.set)
 summary(model.3)
 
-# We think model 3 is better, making presictions for test set
+# We think model 3 is better, build model on entire train data
 final.model <- lm(SalePrice ~ MSSubClass+MSZoning+LotArea+LotShape+LandContour+Neighborhood+Condition2+OverallQual+
                     YearBuilt+RoofStyle+RoofMatl+ExterQual+Foundation+BsmtQual+BsmtExposure+BsmtFinSF1+BsmtUnfSF+
                     `1stFlrSF` +`2ndFlrSF`+FullBath+KitchenQual+WoodDeckSF+ScreenPorch+MiscFeature+MiscVal+SaleType+
                     SaleCondition,data=train)
-predictions <- predict(final.model, newdata=test)
+
+summary(final.model)
+
+# Making predictions on test data
+
+# Clean test data
+
+# Find NAs
+# For the testing data
+nas.cols.ts <- as.vector(rep(0, 80))
+for(i in 1:80){
+  nas.cols.ts[i] <- sum(is.na(test[i]))
+}
+nas.cols.ts
+
+# Naming the vector colums
+names(nas.cols.ts) <- names(train)[1:80]
+nas.cols.ts[nas.cols.ts!=0]
+
+# Replacing NA values with "None" for instances when NA designates that the house 
+# does not have the feature (15 variables)
+
+for(i in c(7,31,32,33,34,36,58, 59, 60, 61, 64, 65, 73, 74, 75)){
+  index <- which(is.na(test[,i]))
+  test[index, i] <- "None"
+}
+
+# Check the remaining variables with NAs
+nas.cols2.ts <- as.vector(rep(0, 80))
+for(i in 1:80){
+  nas.cols2.ts[i] <- sum(is.na(test[i]))
+}
+names(nas.cols2.ts) <- names(test)[1:80]
+nas.cols2.ts[nas.cols2.ts!=0]
+
+# MSZoning  LotFrontage    Utilities  Exterior1st  Exterior2nd   MasVnrType   MasVnrArea   BsmtFinSF1 
+# 4          227            2            1            1           16           15            1 
+# BsmtFinSF2    BsmtUnfSF  TotalBsmtSF BsmtFullBath BsmtHalfBath  KitchenQual   Functional   GarageCars 
+# 1            1            1            2            2            1            2            1 
+# GarageArea     SaleType 
+# 1            1 
+
+# We have 18 columns remainig with NA values.
+
+# Imputing missing values for LotFrontage
+indices.nas.ts <- which(is.na(test$LotFrontage))
+test$LotFrontage[indices.nas.ts] <- as.integer(57.05504 + 0.001305799*test$LotArea[indices.nas.ts]) 
+test$LotFrontage <- as.integer(test$LotFrontage)
+
+# The remaining variables with NAs and we include in our model are
+
+# MSZoning(4), BsmtFinSF1(1), BsmtUnfSF(1),  KitchenQual(1), SaleType(1)
+
+
+test_copy <- test[test$MSSubClass!=150,]   # mz-issue: MSSubClass has new level (150) in test data, just one obeservation
+
+
+
+predictions <- predict(final.model, newdata=test_copy)
 
