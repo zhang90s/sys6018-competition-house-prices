@@ -5,7 +5,7 @@
 
 # Reading in the datasets. 
 library(tidyverse)
-#setwd('C:/Users/cathe/Desktop/SYS6018/HousePrices_KaggleCompetition')
+setwd('C:/Users/cathe/Desktop/SYS6018/HousePrices_KaggleCompetition')
 train <- read_csv('train.csv')
 test <- read_csv('test.csv')
 
@@ -169,9 +169,9 @@ summary(model.all)
 
 # Testing with variables that were significant when testing all
 model.2 <- lm(SalePrice ~ MSSubClass+MSZoning+LotArea+LotShape+LandContour+LotConfig+Neighborhood+Condition2+OverallQual+
-              YearBuilt+RoofStyle+RoofMatl+ExterQual+Foundation+BsmtQual+BsmtExposure+BsmtFinSF1+BsmtUnfSF+
+                YearBuilt+RoofStyle+RoofMatl+ExterQual+Foundation+BsmtQual+BsmtExposure+BsmtFinSF1+BsmtUnfSF+
                 `1stFlrSF` +`2ndFlrSF`+FullBath+KitchenQual+WoodDeckSF+ScreenPorch+MiscFeature+MiscVal+SaleType+
-               SaleCondition,data=train.set)
+                SaleCondition,data=train.set)
 summary(model.2)
 
 # Testing everything as above except LotConfig because it was no longer significant
@@ -189,7 +189,6 @@ final.model <- lm(SalePrice ~ MSSubClass+MSZoning+LotArea+LotShape+LandContour+N
 
 summary(final.model)
 
-# Making predictions on test data
 
 # Clean test data
 
@@ -240,9 +239,80 @@ test$LotFrontage <- as.integer(test$LotFrontage)
 # MSZoning(4), BsmtFinSF1(1), BsmtUnfSF(1),  KitchenQual(1), SaleType(1)
 
 
-test_copy <- test[test$MSSubClass!=150,]   # mz-issue: MSSubClass has new level (150) in test data, just one obeservation
+# test_copy <- test[test$MSSubClass!=150,]   # mz-issue: MSSubClass has new level (150) in test data, just one obeservation
+# 
+# 
+# 
+# predictions <- predict(final.model, newdata=test_copy)
 
+# Filling in NAs for MSZoning
+test %>% group_by(MSZoning) %>% summarise(n())
+# MSZoning `n()`
+# <chr>    <int>
+#   1 C (all)     15
+# 2 FV          74
+# 3 RH          10
+# 4 RL        1114
+# 5 RM         242
+# 6 NA           4
 
+# RL is by far the most frequent category of MSZoning so we are filling in the 4 missing MSZoning values with RL
+test[which(is.na(test$MSZoning)), "MSZoning"] <- 'RL'
 
-predictions <- predict(final.model, newdata=test_copy)
+# Filling in NAs for BsmtFinSF1, BsmtUnfSF
 
+# Checking if the rows for missing values for BsmtFinSF1, BsmtUnfSF have no basement
+
+test[which(is.na(test$BsmtFinSF1)), "BsmtCond"]
+# 1 None  
+# This means there is no basement so the square footage should be 0
+
+test[which(is.na(test$BsmtUnfSF)), "BsmtCond"]
+# 1 None  
+# This means there is no basement so the square footage should be 0
+
+# Filling in 0 for NAs in BsmtFinSF1 and BsmtUnfSF
+test[which(is.na(test$BsmtFinSF1)), "BsmtFinSF1"] <- 0
+test[which(is.na(test$BsmtUnfSF)), "BsmtUnfSF"] <- 0
+
+# Filling in NAs for KitchenQual
+test %>% group_by(KitchenQual) %>% summarise(n())
+# KitchenQual `n()`
+# <chr>       <int>
+#   1 Ex            105
+# 2 Fa             31
+# 3 Gd            565
+# 4 TA            757
+# 5 NA              1
+
+# Replacing the NA with 'TA' since it is the most frequent
+test[which(is.na(test$KitchenQual)), 'KitchenQual'] <- 'TA'
+
+# Filling in NAs for SaleType
+test %>% group_by(SaleType) %>% summarise(n())
+# SaleType `n()`
+# <chr>    <int>
+#   1 COD         44
+# 2 Con          3
+# 3 ConLD       17
+# 4 ConLI        4
+# 5 ConLw        3
+# 6 CWD          8
+# 7 New        117
+# 8 Oth          4
+# 9 WD        1258
+# 10 NA           1
+
+# 'WD' is the most frequent so we are filling the NA with that
+test[which(is.na(test$SaleType)), 'SaleType'] <- 'WD'
+
+# FOr MSSubClass, we are changing the 150 to 120 since the 150 observation had a MSZonging of 'RL' and
+# most of the 120 had a MSZoning of "RL"
+test[which(test$MSSubClass==150), 'MSSubClass'] <- 120
+
+# Now the testing dataseet is cleaned.
+
+# Making our predicitons and writing them to a csv file
+predictions <- predict(final.model, newdata=test)
+predictions.table <- cbind(test$Id, predictions)
+write.table(predictions.table, file="C1-10_Parametric1.csv", row.names=F, col.names = c("Id", "SalePrice"), sep=',')
