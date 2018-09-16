@@ -316,3 +316,205 @@ test[which(test$MSSubClass==150), 'MSSubClass'] <- 120
 predictions <- predict(final.model, newdata=test)
 predictions.table <- cbind(test$Id, predictions)
 write.table(predictions.table, file="C1-10_Parametric1.csv", row.names=F, col.names = c("Id", "SalePrice"), sep=',')
+
+
+
+#################################################################################
+#                                                                               #
+#                                                                               #
+#                            KNN Approach                                       #
+#                                                                               #
+#                                                                               #
+#################################################################################
+
+# Creating a function to calculate the distance between two points
+# x is the point we would like to evaluate
+# y is a neighboring point used in KNN
+distance <- function(x, y){
+  return(sqrt(sum((x-y)^2)))
+}
+
+
+# Resaving categorical variables as integers so we can use them for KNN
+classes <- sapply(train, class)
+indices_categorical <- which(classes != 'integer')
+unname(indices_categorical)
+for(i in indices_categorical){
+  train[,i] <- as.integer(as.factor(unlist(train[,i])))
+}
+
+# Using Cross Validation. We subsetted the train set into a training and validation set earlier in this code
+sub <- sample(1:length(train$Id), length(train$Id)/2)
+train.set <- train[sub,]
+valid.set <- train[-sub,]
+
+# Row vector from validation set is the point we would like to evaluate
+x <- as.vector(valid.set[1,2:80])
+dists1 <- apply(train.set[, 2:80], MARGIN=1, distance, y=x)
+test[,82] <- dists1
+value <- quantile(test$V82, K/length(train.set$Id))
+subset.of.k <- test[test$V82 <= value,]
+mean(subset.of.k$SalePrice)
+
+
+
+# Then calculate the distance from that point to all the points (row vectors) in training set
+# x <- as.vector(valid.set[1,2:80])
+# dists <- rep(0, times=length(train.set$Id))
+# for(i in 1:length(train.set$Id)){
+#   dists[i] <- distance(x=x, y=train.set[i, 2:80])
+# }
+# test[, 82] <- dists
+# dists1-dists
+# # Choose K nearest points from training set
+# K <- 5
+# test <- train.set
+# test[,82] <- dists
+# test <- test[order(test$V82),]
+# k.neighbors <- head(test, K)
+# mean(k.neighbors$SalePrice)
+# # Average the houseing price from those K points, use that price as prediction for the point from validation set
+# avg.price <- mean(k.neighbors$SalePrice)
+# 
+# rows <- as.list(rep(rep(0, times=80), times = length(test$Id)))
+# for(i in 1:length(test$Id)){
+#   rows[i] <- test[i, 2:80]
+# }
+# warnings()
+# 
+# K<- 5
+# predicted.price <- rep(0, length(valid.set$Id))
+# for(i in 1:length(valid.set$Id)){
+#   x <- as.vector(valid.set[i,2:80])
+#   dists <- apply(train.set[, 2:80], MARGIN=1, distance, y=x)
+#   test[,82] <- dists
+#   test <- test[order(test$V82),]
+#   k.neighbors <- head(test, K)
+#   predicted.price[i] <- mean(k.neighbors$SalePrice)
+# }
+# 
+# # Subsetting instead of sorting so that the for loop is faster
+# predicted.price1[i] <- mean(test[test$V82<= quantile(test$V82, K/length(test$Id)),]$SalePrice)
+# K<- 5
+# predicted.price1 <- rep(0, length(valid.set$Id))
+# for(i in 1:length(valid.set$Id)){
+#   x <- as.vector(valid.set[i,2:80])
+#   dists <- apply(train.set[, 2:80], MARGIN=1, distance, y=x)
+#   test[,82] <- dists
+#   predicted.price1[i] <- mean(test[test$V82<= quantile(test$V82, K/length(test$Id)),]$SalePrice)
+#   
+# }
+# 
+# x <- as.vector(valid.set[1,2:80])
+# dists <- apply(train.set[, 2:80], MARGIN=1, distance, y=x)
+# test[,82] <- dists
+# mean(test[test$V82<= quantile(test$V82, K/length(test$Id)),]$SalePrice)
+# 
+# 
+# predicted.price[1:48]-valid.set[1:48,81]
+# summary(abs(predicted.price[1:48]-valid.set[1:48,81]))
+# 
+# 
+# predicted.prices <- rep(0, times=6)
+# Ks <- c(5, 10, 25, 50, 75, 100)
+# for(j in 1:length(Ks)){
+#   K <- Ks[j]
+#   test[,82] <- dists
+#   test <- test[order(test$V82),]
+#   k.neighbors <- head(test, K)
+#   predicted.prices[j] <- mean(k.neighbors$SalePrice)
+#   
+# }
+# 
+# 
+# ##################################################################################################
+# # Long Method
+# K <- 5
+# test <- train.set
+# x <- valid.set[1,2:80]
+# dists <- rep(0, times=length(test$Id))
+# for(i in 1:length(test$Id)){
+#   dists[i] <- distance(x=x, y=test[i, 2:80])
+# }
+# test[, 82] <- dists
+# k.neighbors <- test[test$V82 <= quantile(test$V82, K/length(test$Id)),]
+# mean(k.neighbors$SalePrice)
+# # [1] 205460
+
+#####################################################################################
+test <- train.set
+K <- 5
+dists <- rep(0, times=length(test$Id))
+avg.price <- rep(0, times=length(valid.set$Id))
+for(i in 1:length(valid.set$Id)){
+  x <- valid.set[i, 2:80]
+  dists <- apply(test[,2:80], MARGIN=1, distance, y=x)
+  test[,82] <- dists
+  k.neighbors <- test[test$V82 <= quantile(test$V82, K/length(test$Id)),]
+  avg.price[i] <- mean(k.neighbors$SalePrice)
+}
+1-1
+test2 <- train.set[, c('MSSubClass','MSZoning','LotArea','LotShape','LandContour','Neighborhood','Condition2','OverallQual',
+  'YearBuilt','RoofStyle','RoofMatl','ExterQual','Foundation','BsmtQual','BsmtExposure','BsmtFinSF1','BsmtUnfSF',
+  '1stFlrSF' ,'2ndFlrSF','FullBath','KitchenQual','WoodDeckSF','ScreenPorch','MiscFeature','MiscVal','SaleType',
+  'SaleCondition', 'SalePrice')]
+valid.set2 <- valid.set[, c('MSSubClass','MSZoning','LotArea','LotShape','LandContour','Neighborhood','Condition2','OverallQual',
+                            'YearBuilt','RoofStyle','RoofMatl','ExterQual','Foundation','BsmtQual','BsmtExposure','BsmtFinSF1','BsmtUnfSF',
+                            '1stFlrSF' ,'2ndFlrSF','FullBath','KitchenQual','WoodDeckSF','ScreenPorch','MiscFeature','MiscVal','SaleType',
+                            'SaleCondition')]
+
+length(c('MSSubClass','MSZoning','LotArea','LotShape','LandContour','Neighborhood','Condition2','OverallQual',
+         'YearBuilt','RoofStyle','RoofMatl','ExterQual','Foundation','BsmtQual','BsmtExposure','BsmtFinSF1','BsmtUnfSF',
+         '1stFlrSF' ,'2ndFlrSF','FullBath','KitchenQual','WoodDeckSF','ScreenPorch','MiscFeature','MiscVal','SaleType',
+         'SaleCondition', 'SalePrice'))
+
+K <- 5
+dists <- rep(0, times=length(test2$MSSubClass))
+avg.price <- rep(0, times=length(valid.set2$MSSubClass))
+test2$Distance <- NA
+for(i in 1:length(valid.set2$MSSubClass)){
+  x <- valid.set2[i, 1:27]
+  dists <- apply(test2[,1:27], MARGIN=1, distance, y=x)
+  test2$Distance <- dists
+  k.neighbors <- test2[test2$Distance <= quantile(test2$Distance, K/length(test2$MSSubClass)),]
+  avg.price[i] <- mean(k.neighbors$SalePrice)
+}
+
+
+# Running with real test set
+classes <- sapply(train, class)
+indices_categorical <- which(classes != 'integer')
+unname(indices_categorical)
+for(i in indices_categorical){
+  train[,i] <- as.integer(as.factor(unlist(train[,i])))
+}
+
+classes <- sapply(test, class)
+indices_categorical <- which(classes != 'integer')
+unname(indices_categorical)
+for(i in indices_categorical){
+  test[,i] <- as.integer(as.factor(unlist(test[,i])))
+}
+
+subsetted.train <- train[,c('MSSubClass','MSZoning','LotArea','LotShape','LandContour','Neighborhood','Condition2','OverallQual',
+                            'YearBuilt','RoofStyle','RoofMatl','ExterQual','Foundation','BsmtQual','BsmtExposure','BsmtFinSF1','BsmtUnfSF',
+                            '1stFlrSF' ,'2ndFlrSF','FullBath','KitchenQual','WoodDeckSF','ScreenPorch','MiscFeature','MiscVal','SaleType',
+                            'SaleCondition', 'SalePrice')]
+subsetted.test <- test[,c('MSSubClass','MSZoning','LotArea','LotShape','LandContour','Neighborhood','Condition2','OverallQual',
+                          'YearBuilt','RoofStyle','RoofMatl','ExterQual','Foundation','BsmtQual','BsmtExposure','BsmtFinSF1','BsmtUnfSF',
+                          '1stFlrSF' ,'2ndFlrSF','FullBath','KitchenQual','WoodDeckSF','ScreenPorch','MiscFeature','MiscVal','SaleType',
+                          'SaleCondition')]
+
+
+
+K <- 5
+dists <- rep(0, times=length(subsetted.train$MSSubClass))
+avg.price <- rep(0, times=length(subsetted.test$MSSubClass))
+subsetted.train$Distance <- NA
+for(i in 1:length(subsetted.test$MSSubClass)){
+  x <- subsetted.test[i, 1:27]
+  dists <- apply(subsetted.train[,1:27], MARGIN=1, distance, y=x)
+  subsetted.train$Distance <- dists
+  k.neighbors <- subsetted.train[subsetted.train$Distance <= quantile(subsetted.train$Distance, K/length(subsetted.train$MSSubClass)),]
+  avg.price[i] <- mean(k.neighbors$SalePrice)
+}
