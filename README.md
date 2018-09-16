@@ -3,8 +3,8 @@ Kaggle Competition: House Prices - Advanced Regression Techniques
 
 Team Roles:
  
-Catherine Beazley - Data cleaning of train data
+Catherine Beazley - Clean train data
 
 Ruoyan Chen - Variable selection for parametric models
 
-Mengyao Zhang - GitHub coordinator, data cleaning of test data
+Mengyao Zhang - GitHub coordinator, clean test data
