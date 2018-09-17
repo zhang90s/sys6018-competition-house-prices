@@ -506,7 +506,7 @@ sig.cols.non <- c(sig.cols, 'SalePrice')
 # Using the sig.cols
 subsetted.train2 <- train[, sig.cols.non]
 subsetted.test2 <- test[,sig.cols]
-K <- 10
+K <- 102
 dists <- rep(0, times=length(subsetted.train2$MSSubClass))
 avg.price <- rep(0, times=length(subsetted.test2$MSSubClass))
 subsetted.train2$Distance <- NA
@@ -525,5 +525,115 @@ predictions.table[1,]
 write.table(predictions.table, file="C1-10_Non_Parametric3.csv", row.names=F, col.names = c("Id", "SalePrice"), sep=',')
 
 predictions.table <- cbind(test$Id, avg.price)
-write.table(predictions.table, file="C1-10_Non_Parametric4.csv", row.names=F, col.names = c("Id", "SalePrice"), sep=',')
+write.table(predictions.table, file="C1-10_Non_Parametric5.csv", row.names=F, col.names = c("Id", "SalePrice"), sep=',')
+
+predictions.table[1,]
+
+#########################
+
+
+
+train.set2  <- train.set[1:200, sig.cols.non]
+valid.set2 <- train.set[201:400, sig.cols]
+
+classes <- sapply(train.set2, class)
+indices_categorical <- which(classes != 'integer')
+unname(indices_categorical)
+for(i in indices_categorical){
+  train.set2[,i] <- as.integer(as.factor(unlist(train.set2[,i])))
+}
+
+classes <- sapply(valid.set2, class)
+indices_categorical <- which(classes != 'integer')
+unname(indices_categorical)
+for(i in indices_categorical){
+  valid.set2[,i] <- as.integer(as.factor(unlist(valid.set2[,i])))
+}
+
+K <- 13
+dists <- rep(0, times=length(train.set2$MSSubClass))
+avg.price <- rep(0, times=length(valid.set2$MSSubClass))
+train.set2$Distance <- NA
+for(i in 1:length(valid.set2$MSSubClass)){
+  x <- valid.set2[i,1:13]
+  dists <- apply(train.set2[,1:13], MARGIN=1, distance, y=x)
+  train.set2$Distance <- dists
+  k.neighbors <- train.set2[train.set2$Distance <= quantile(train.set2$Distance, K/length(train.set2$MSSubClass)),]
+  avg.price[i] <- mean(k.neighbors$SalePrice)
+}
+avg.price
+
+# This is for test and validation subset of 20 rows
+#  MSE K=5
+mean((valid.set2[,14]-avg.price)^2)
+# [1] 28544064893
+
+#  MSE K=6
+mean((valid.set2[,14]-avg.price)^2)
+# [1] 29731758320
+
+#  MSE K=10
+mean((valid.set2[,14]-avg.price)^2)
+# [1] 32634212803
+
+#  MSE K=2
+mean((valid.set2[,14]-avg.price)^2)
+# [1] 27201681601
+
+#  MSE K=15
+mean((valid.set2[,14]-avg.price)^2)
+
+# Test and validation subset of 100 rows
+
+# K=10-- 10%
+mean((valid.set2[,14]-avg.price)^2)
+# [1] 27753781670
+
+# K=15 -- 15%
+mean((valid.set2[,14]-avg.price)^2)
+# [1] 28032779369
+
+# K=5 -- 5%
+mean((valid.set2[,14]-avg.price)^2)
+# [1] 27226754730
+
+# K=
+
+# K=4 -- 4%
+mean((valid.set2[,14]-avg.price)^2)
+# [1] 27565702388
+
+# Testing our theory that MSE is minimized for K= 5% of number of rows on test set of 200 rows
+# K=10 -- 5%
+mean((valid.set2[,14]-avg.price)^2)
+#[1] 30493590293
+
+# K=5 -- 2.5%
+mean((valid.set2[,14]-avg.price)^2)
+# [1] 30959572571
+
+# K=15 -- 7.5%
+mean((valid.set2[,14]-avg.price)^2)
+# [1] 30198609740
+
+# K=20 -- 10%
+mean((valid.set2[,14]-avg.price)^2)
+# 30690971029
+
+# K=16 -- 8%
+mean((valid.set2[,14]-avg.price)^2)
+# [1] 30353216550
+
+# K=14 -- 7%
+mean((valid.set2[,14]-avg.price)^2)
+# [1] 30102178878
+
+# K=13 -- 6.5%
+mean((valid.set2[,14]-avg.price)^2)
+# [1] 30184335713
+
+
+# We have determine that a K value that is 7% of the number of observations gives the lowest
+# test MSE. We will use K= .07*1451=102 to optimize our KNN
+
 
