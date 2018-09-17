@@ -22,8 +22,11 @@ test$OverallQual <- as.factor(test$OverallQual)
 test$OverallCond <- as.factor(test$OverallCond)
 test$MoSold <- as.factor(test$MoSold)
 
-############## Cleaning the Data #################
-
+###################################################################################
+#                                                                                 #
+#                             Cleaning Test Data                                  #
+#                                                                                 #
+###################################################################################
 # Finding with NAs first
 
 # For the training data
@@ -149,8 +152,11 @@ zero.cols[zero.cols!=0]
 
 # Since we have accounted for all 0s and NAs, we conclude we have cleaned the data.
 
-########## Parametric Approach ##############################################
-
+###################################################################################
+#                                                                                 #
+#                             Parametric Approach                                 #
+#                                                                                 #
+###################################################################################
 # We will use cross validation
 sub <- sample(1:length(train$Id), length(train$Id)/2)
 train.set <- train[sub,]
@@ -181,7 +187,7 @@ model.3 <- lm(SalePrice ~ MSSubClass+MSZoning+LotArea+LotShape+LandContour+Neigh
                 SaleCondition,data=train.set)
 summary(model.3)
 
-# We think model 3 is better, build model on entire train data
+
 final.model <- lm(SalePrice ~ MSSubClass+MSZoning+LotArea+LotShape+LandContour+Neighborhood+Condition2+OverallQual+
                     YearBuilt+RoofStyle+RoofMatl+ExterQual+Foundation+BsmtQual+BsmtExposure+BsmtFinSF1+BsmtUnfSF+
                     `1stFlrSF` +`2ndFlrSF`+FullBath+KitchenQual+WoodDeckSF+ScreenPorch+MiscFeature+MiscVal+SaleType+
@@ -189,9 +195,44 @@ final.model <- lm(SalePrice ~ MSSubClass+MSZoning+LotArea+LotShape+LandContour+N
 
 summary(final.model)
 
+# Pasted subsetting here again so that we could easily re-subset the training set to evaluate signififcance
+# of varibales for different subsets of the training set.
+sub <- sample(1:length(train$Id), length(train$Id)/3)
+train.set <- train[-sub,]
+valid.set <- train[sub,]
 
-# Clean test data
+final.model2 <- lm(SalePrice ~ MSSubClass+LotArea+OverallQual+Neighborhood+ YearBuilt+ExterQual+BsmtQual+BsmtExposure+BsmtFinSF1+`1stFlrSF`+
+                   `2ndFlrSF`+KitchenQual+ ScreenPorch+SaleCondition ,data=train)
+summary(final.model2)
+# This is our best model. Had the highest R^2 and R^2 adjusted. Therefore, these are the significant variables:
+sig.cols <- c('MSSubClass', 'LotArea', 'Neighborhood', 'OverallQual', 'YearBuilt', 'ExterQual', 'BsmtQual', 'BsmtExposure', 'BsmtFinSF1', 
+              "1stFlrSF", '2ndFlrSF', 'KitchenQual',  'ScreenPorch', 'SaleCondition')
 
+
+# Still going to try more models to reduce the number of variables
+final.model3 <- lm(SalePrice ~ MSSubClass+LotArea+YearBuilt+BsmtQual+BsmtFinSF1+`1stFlrSF`+
+                     `2ndFlrSF`+KitchenQual+ ScreenPorch,data=train)
+
+summary(final.model3)
+# Did worse in Kaggle
+
+final.model4 <- lm(SalePrice ~ MSSubClass+OverallQual+LotArea+Neighborhood+YearBuilt+BsmtFinSF1+`1stFlrSF`+
+                     `2ndFlrSF`+KitchenQual+ ScreenPorch,data=train)
+summary(final.model4)
+# Adjusted MSE decreased so is not likely to be a good model. Still, tested this in Kaggle and did worse.
+
+
+final.model5 <- lm(SalePrice ~ MSSubClass+LotArea+YearBuilt+`1stFlrSF`+`2ndFlrSF`+KitchenQual+ ScreenPorch,data=train)
+summary(final.model5)
+# Adjusted MSE decreased so is not likely to be a good model. Still, tested this in Kaggle and did worse.
+
+# The model final.model2 performed best. This is the model we will use for the Kaggle Competition for Parametric.
+
+###################################################################################
+#                                                                                 #
+#                             Cleaning Test Data                                  #
+#                                                                                 #
+###################################################################################
 # Find NAs
 # For the testing data
 nas.cols.ts <- as.vector(rep(0, 80))
@@ -310,13 +351,36 @@ test[which(is.na(test$SaleType)), 'SaleType'] <- 'WD'
 # most of the 120 had a MSZoning of "RL"
 test[which(test$MSSubClass==150), 'MSSubClass'] <- 120
 
-# Now the testing dataseet is cleaned.
+
+# Now the testing dataset is cleaned.
+
+
+################# Writing Parametric Predictions to CSV File ###################################
 
 # Making our predicitons and writing them to a csv file
 predictions <- predict(final.model, newdata=test)
 predictions.table <- cbind(test$Id, predictions)
 write.table(predictions.table, file="C1-10_Parametric1.csv", row.names=F, col.names = c("Id", "SalePrice"), sep=',')
 
+# CMB: test new varables 1
+predictions <- predict(final.model2, newdata=test)
+predictions.table <- cbind(test$Id, predictions)
+write.table(predictions.table, file="C1-10_Parametric2.csv", row.names=F, col.names = c("Id", "SalePrice"), sep=',')
+
+# CMB: test new varables 2
+predictions <- predict(final.model3, newdata=test)
+predictions.table <- cbind(test$Id, predictions)
+write.table(predictions.table, file="C1-10_Parametric3.csv", row.names=F, col.names = c("Id", "SalePrice"), sep=',')
+
+# CMB: test new varables 3
+predictions <- predict(final.model4, newdata=test)
+predictions.table <- cbind(test$Id, predictions)
+write.table(predictions.table, file="C1-10_Parametric5.csv", row.names=F, col.names = c("Id", "SalePrice"), sep=',')
+
+# CMB: test new varables 4, adding neighborhood to best submission (14 variables)
+predictions <- predict(final.model2, newdata=test)
+predictions.table <- cbind(test$Id, predictions)
+write.table(predictions.table, file="C1-10_Parametric6.csv", row.names=F, col.names = c("Id", "SalePrice"), sep=',')
 
 
 #################################################################################
@@ -356,92 +420,6 @@ value <- quantile(test$V82, K/length(train.set$Id))
 subset.of.k <- test[test$V82 <= value,]
 mean(subset.of.k$SalePrice)
 
-
-
-# Then calculate the distance from that point to all the points (row vectors) in training set
-# x <- as.vector(valid.set[1,2:80])
-# dists <- rep(0, times=length(train.set$Id))
-# for(i in 1:length(train.set$Id)){
-#   dists[i] <- distance(x=x, y=train.set[i, 2:80])
-# }
-# test[, 82] <- dists
-# dists1-dists
-# # Choose K nearest points from training set
-# K <- 5
-# test <- train.set
-# test[,82] <- dists
-# test <- test[order(test$V82),]
-# k.neighbors <- head(test, K)
-# mean(k.neighbors$SalePrice)
-# # Average the houseing price from those K points, use that price as prediction for the point from validation set
-# avg.price <- mean(k.neighbors$SalePrice)
-# 
-# rows <- as.list(rep(rep(0, times=80), times = length(test$Id)))
-# for(i in 1:length(test$Id)){
-#   rows[i] <- test[i, 2:80]
-# }
-# warnings()
-# 
-# K<- 5
-# predicted.price <- rep(0, length(valid.set$Id))
-# for(i in 1:length(valid.set$Id)){
-#   x <- as.vector(valid.set[i,2:80])
-#   dists <- apply(train.set[, 2:80], MARGIN=1, distance, y=x)
-#   test[,82] <- dists
-#   test <- test[order(test$V82),]
-#   k.neighbors <- head(test, K)
-#   predicted.price[i] <- mean(k.neighbors$SalePrice)
-# }
-# 
-# # Subsetting instead of sorting so that the for loop is faster
-# predicted.price1[i] <- mean(test[test$V82<= quantile(test$V82, K/length(test$Id)),]$SalePrice)
-# K<- 5
-# predicted.price1 <- rep(0, length(valid.set$Id))
-# for(i in 1:length(valid.set$Id)){
-#   x <- as.vector(valid.set[i,2:80])
-#   dists <- apply(train.set[, 2:80], MARGIN=1, distance, y=x)
-#   test[,82] <- dists
-#   predicted.price1[i] <- mean(test[test$V82<= quantile(test$V82, K/length(test$Id)),]$SalePrice)
-#   
-# }
-# 
-# x <- as.vector(valid.set[1,2:80])
-# dists <- apply(train.set[, 2:80], MARGIN=1, distance, y=x)
-# test[,82] <- dists
-# mean(test[test$V82<= quantile(test$V82, K/length(test$Id)),]$SalePrice)
-# 
-# 
-# predicted.price[1:48]-valid.set[1:48,81]
-# summary(abs(predicted.price[1:48]-valid.set[1:48,81]))
-# 
-# 
-# predicted.prices <- rep(0, times=6)
-# Ks <- c(5, 10, 25, 50, 75, 100)
-# for(j in 1:length(Ks)){
-#   K <- Ks[j]
-#   test[,82] <- dists
-#   test <- test[order(test$V82),]
-#   k.neighbors <- head(test, K)
-#   predicted.prices[j] <- mean(k.neighbors$SalePrice)
-#   
-# }
-# 
-# 
-# ##################################################################################################
-# # Long Method
-# K <- 5
-# test <- train.set
-# x <- valid.set[1,2:80]
-# dists <- rep(0, times=length(test$Id))
-# for(i in 1:length(test$Id)){
-#   dists[i] <- distance(x=x, y=test[i, 2:80])
-# }
-# test[, 82] <- dists
-# k.neighbors <- test[test$V82 <= quantile(test$V82, K/length(test$Id)),]
-# mean(k.neighbors$SalePrice)
-# # [1] 205460
-
-#####################################################################################
 test <- train.set
 K <- 5
 dists <- rep(0, times=length(test$Id))
@@ -506,7 +484,10 @@ subsetted.test <- test[,c('MSSubClass','MSZoning','LotArea','LotShape','LandCont
                           'SaleCondition')]
 
 
-
+length(c('MSSubClass','MSZoning','LotArea','LotShape','LandContour','Neighborhood','Condition2','OverallQual',
+         'YearBuilt','RoofStyle','RoofMatl','ExterQual','Foundation','BsmtQual','BsmtExposure','BsmtFinSF1','BsmtUnfSF',
+         '1stFlrSF' ,'2ndFlrSF','FullBath','KitchenQual','WoodDeckSF','ScreenPorch','MiscFeature','MiscVal','SaleType',
+         'SaleCondition'))
 K <- 5
 dists <- rep(0, times=length(subsetted.train$MSSubClass))
 avg.price <- rep(0, times=length(subsetted.test$MSSubClass))
@@ -518,3 +499,31 @@ for(i in 1:length(subsetted.test$MSSubClass)){
   k.neighbors <- subsetted.train[subsetted.train$Distance <= quantile(subsetted.train$Distance, K/length(subsetted.train$MSSubClass)),]
   avg.price[i] <- mean(k.neighbors$SalePrice)
 }
+avg.price
+
+sig.cols
+sig.cols.non <- c(sig.cols, 'SalePrice')
+# Using the sig.cols
+subsetted.train2 <- train[, sig.cols.non]
+subsetted.test2 <- test[,sig.cols]
+K <- 10
+dists <- rep(0, times=length(subsetted.train2$MSSubClass))
+avg.price <- rep(0, times=length(subsetted.test2$MSSubClass))
+subsetted.train2$Distance <- NA
+for(i in 1:length(subsetted.test2$MSSubClass)){
+  x <- subsetted.test2[i,1:13]
+  dists <- apply(subsetted.train2[,1:13], MARGIN=1, distance, y=x)
+  subsetted.train2$Distance <- dists
+  k.neighbors <- subsetted.train2[subsetted.train2$Distance <= quantile(subsetted.train2$Distance, K/length(subsetted.train2$MSSubClass)),]
+  avg.price[i] <- mean(k.neighbors$SalePrice)
+}
+avg.price
+
+predictions.table <- cbind(test$Id, avg.price)
+predictions.table[1,]
+
+write.table(predictions.table, file="C1-10_Non_Parametric3.csv", row.names=F, col.names = c("Id", "SalePrice"), sep=',')
+
+predictions.table <- cbind(test$Id, avg.price)
+write.table(predictions.table, file="C1-10_Non_Parametric4.csv", row.names=F, col.names = c("Id", "SalePrice"), sep=',')
+
