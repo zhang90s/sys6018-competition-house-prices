@@ -430,8 +430,7 @@ write.table(predictions.table, file="C1-10_Parametric6.csv", row.names=F, col.na
 #################################################################################
 
 # Creating a function to calculate the distance between two points
-# x is the point we would like to evaluate
-# y is a neighboring point used in KNN
+
 distance <- function(x, y){
   return(sqrt(sum((x-y)^2)))
 }
@@ -445,19 +444,24 @@ for(i in indices_categorical){
   train[,i] <- as.integer(as.factor(unlist(train[,i])))
 }
 
-# Using Cross Validation. We subsetted the train set into a training and validation set earlier in this code
+# Using Cross Validation. 
 sub <- sample(1:length(train$Id), length(train$Id)/2)
 train.set <- train[sub,]
 valid.set <- train[-sub,]
 
 # Row vector from validation set is the point we would like to evaluate
 x <- as.vector(valid.set[1,2:80])
+# Finding distances
 dists1 <- apply(train.set[, 2:80], MARGIN=1, distance, y=x)
+# Saving distances as a column in training set
 test[,82] <- dists1
+# Finding K nearest points
 value <- quantile(test$V82, K/length(train.set$Id))
 subset.of.k <- test[test$V82 <= value,]
+# Finding the average SalePrice of the K nearest
 mean(subset.of.k$SalePrice)
 
+# Now doing above for all points in training/ validation sets with a for loop
 test <- train.set
 K <- 5
 dists <- rep(0, times=length(test$Id))
@@ -469,7 +473,7 @@ for(i in 1:length(valid.set$Id)){
   k.neighbors <- test[test$V82 <= quantile(test$V82, K/length(test$Id)),]
   avg.price[i] <- mean(k.neighbors$SalePrice)
 }
-1-1
+
 test2 <- train.set[, c('MSSubClass','MSZoning','LotArea','LotShape','LandContour','Neighborhood','Condition2','OverallQual',
                        'YearBuilt','RoofStyle','RoofMatl','ExterQual','Foundation','BsmtQual','BsmtExposure','BsmtFinSF1','BsmtUnfSF',
                        '1stFlrSF' ,'2ndFlrSF','FullBath','KitchenQual','WoodDeckSF','ScreenPorch','MiscFeature','MiscVal','SaleType',
@@ -478,11 +482,6 @@ valid.set2 <- valid.set[, c('MSSubClass','MSZoning','LotArea','LotShape','LandCo
                             'YearBuilt','RoofStyle','RoofMatl','ExterQual','Foundation','BsmtQual','BsmtExposure','BsmtFinSF1','BsmtUnfSF',
                             '1stFlrSF' ,'2ndFlrSF','FullBath','KitchenQual','WoodDeckSF','ScreenPorch','MiscFeature','MiscVal','SaleType',
                             'SaleCondition')]
-
-length(c('MSSubClass','MSZoning','LotArea','LotShape','LandContour','Neighborhood','Condition2','OverallQual',
-         'YearBuilt','RoofStyle','RoofMatl','ExterQual','Foundation','BsmtQual','BsmtExposure','BsmtFinSF1','BsmtUnfSF',
-         '1stFlrSF' ,'2ndFlrSF','FullBath','KitchenQual','WoodDeckSF','ScreenPorch','MiscFeature','MiscVal','SaleType',
-         'SaleCondition', 'SalePrice'))
 
 K <- 5
 dists <- rep(0, times=length(test2$MSSubClass))
@@ -497,7 +496,7 @@ for(i in 1:length(valid.set2$MSSubClass)){
 }
 
 
-# Running with real test set
+# Running with real train/test set. 
 classes <- sapply(train, class)
 indices_categorical <- which(classes != 'integer')
 unname(indices_categorical)
@@ -512,6 +511,8 @@ for(i in indices_categorical){
   test[,i] <- as.integer(as.factor(unlist(test[,i])))
 }
 
+# Using 27 significant variables found in Parametric approach
+
 subsetted.train <- train[,c('MSSubClass','MSZoning','LotArea','LotShape','LandContour','Neighborhood','Condition2','OverallQual',
                             'YearBuilt','RoofStyle','RoofMatl','ExterQual','Foundation','BsmtQual','BsmtExposure','BsmtFinSF1','BsmtUnfSF',
                             '1stFlrSF' ,'2ndFlrSF','FullBath','KitchenQual','WoodDeckSF','ScreenPorch','MiscFeature','MiscVal','SaleType',
@@ -521,11 +522,6 @@ subsetted.test <- test[,c('MSSubClass','MSZoning','LotArea','LotShape','LandCont
                           '1stFlrSF' ,'2ndFlrSF','FullBath','KitchenQual','WoodDeckSF','ScreenPorch','MiscFeature','MiscVal','SaleType',
                           'SaleCondition')]
 
-
-length(c('MSSubClass','MSZoning','LotArea','LotShape','LandContour','Neighborhood','Condition2','OverallQual',
-         'YearBuilt','RoofStyle','RoofMatl','ExterQual','Foundation','BsmtQual','BsmtExposure','BsmtFinSF1','BsmtUnfSF',
-         '1stFlrSF' ,'2ndFlrSF','FullBath','KitchenQual','WoodDeckSF','ScreenPorch','MiscFeature','MiscVal','SaleType',
-         'SaleCondition'))
 K <- 5
 dists <- rep(0, times=length(subsetted.train$MSSubClass))
 avg.price <- rep(0, times=length(subsetted.test$MSSubClass))
@@ -539,9 +535,11 @@ for(i in 1:length(subsetted.test$MSSubClass)){
 }
 avg.price
 
+
+# Using the sig.cols from the parametric part of the code. This vector contains all the varibales
+# we found most significant in the parametric approach.
 sig.cols
 sig.cols.non <- c(sig.cols, 'SalePrice')
-# Using the sig.cols
 subsetted.train2 <- train[, sig.cols.non]
 subsetted.test2 <- test[,sig.cols]
 K <- 102
@@ -556,20 +554,17 @@ for(i in 1:length(subsetted.test2$MSSubClass)){
   avg.price[i] <- mean(k.neighbors$SalePrice)
 }
 avg.price
+
+
 mean((subsetted.train2[,14]-avg.price)^2)
 predictions.table <- cbind(test$Id, avg.price)
-predictions.table[1,]
-
 write.table(predictions.table, file="C1-10_Non_Parametric_k145.csv", row.names=F, col.names = c("Id", "SalePrice"), sep=',')
 
 predictions.table <- cbind(test$Id, avg.price)
 write.table(predictions.table, file="C1-10_Non_Parametric6.csv", row.names=F, col.names = c("Id", "SalePrice"), sep=',')
 
-predictions.table[1,]
-
-#########################
-
-
+# Below we run through a few cross validation models to see the effect of K on MSE to predict which 
+# K to use for the actual predictions
 
 train.set2  <- train.set[1:200, sig.cols.non]
 valid.set2 <- train.set[201:400, sig.cols]
@@ -635,8 +630,6 @@ mean((valid.set2[,14]-avg.price)^2)
 mean((valid.set2[,14]-avg.price)^2)
 # [1] 27226754730
 
-# K=
-
 # K=4 -- 4%
 mean((valid.set2[,14]-avg.price)^2)
 # [1] 27565702388
@@ -673,3 +666,7 @@ mean((valid.set2[,14]-avg.price)^2)
 
 # We have determine that a K value that is 7% of the number of observations gives the lowest
 # test MSE. We will use K= .07*1451=102 to optimize our KNN
+# When submitted on Kaggle, K=102 increase our test MSE from K=10
+
+# We ultimately had the lowest test MSE on Kaggle with the 14 significant variables noted earlier
+# with K=10
