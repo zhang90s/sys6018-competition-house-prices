@@ -5,7 +5,7 @@
 
 # Reading in the datasets. 
 library(tidyverse)
-setwd('C:/Users/cathe/Desktop/SYS6018/HousePrices_KaggleCompetition')
+
 train <- read_csv('train.csv')
 test <- read_csv('test.csv')
 
@@ -165,7 +165,7 @@ valid.set <- train[-sub,]
 
 # Testing all variables
 model.all <- lm(SalePrice ~ ., data=train.set)
-options(max.print=1000000)
+#options(max.print=1000000)
 summary(model.all)
 
 # MSSubClass, MSZoning, LotArea, LotShape, LandContour, LotConfig, Neighborhood, Condition2, OverallQual,
@@ -180,6 +180,12 @@ model.2 <- lm(SalePrice ~ MSSubClass+MSZoning+LotArea+LotShape+LandContour+LotCo
                 SaleCondition,data=train.set)
 summary(model.2)
 
+# use the model to predict SalePrice on valid.set and calculate mse
+sp2<- predict(model.2, newdata=valid.set)
+mse.2.valid<-mean((valid.set[,81]-sp2)^2)
+mse.2.valid
+# mse.2.valid=1259246404
+
 # Testing everything as above except LotConfig because it was no longer significant
 model.3 <- lm(SalePrice ~ MSSubClass+MSZoning+LotArea+LotShape+LandContour+Neighborhood+Condition2+OverallQual+
                 YearBuilt+RoofStyle+RoofMatl+ExterQual+Foundation+BsmtQual+BsmtExposure+BsmtFinSF1+BsmtUnfSF+
@@ -187,23 +193,43 @@ model.3 <- lm(SalePrice ~ MSSubClass+MSZoning+LotArea+LotShape+LandContour+Neigh
                 SaleCondition,data=train.set)
 summary(model.3)
 
+# use the model to predict SalePrice on valid.set and calculate mse
+sp3<- predict(model.3, newdata=valid.set)
+mse.3.valid<-mean((valid.set[,81]-sp3)^2)
+mse.3.valid
+# mse.3.valid=1255004611
 
 final.model <- lm(SalePrice ~ MSSubClass+MSZoning+LotArea+LotShape+LandContour+Neighborhood+Condition2+OverallQual+
                     YearBuilt+RoofStyle+RoofMatl+ExterQual+Foundation+BsmtQual+BsmtExposure+BsmtFinSF1+BsmtUnfSF+
                     `1stFlrSF` +`2ndFlrSF`+FullBath+KitchenQual+WoodDeckSF+ScreenPorch+MiscFeature+MiscVal+SaleType+
-                    SaleCondition,data=train)
+                    SaleCondition,data=train.set)
 
 summary(final.model)
 
-# Pasted subsetting here again so that we could easily re-subset the training set to evaluate signififcance
-# of varibales for different subsets of the training set.
-sub <- sample(1:length(train$Id), length(train$Id)/3)
-train.set <- train[-sub,]
-valid.set <- train[sub,]
+# use the model to predict SalePrice on valid.set and calculate mse
+spfinal<- predict(final.model, newdata=valid.set)
+mse.final.valid<-mean((valid.set[,81]-spfinal)^2)
+mse.final.valid
+# mse.final.valid=1067579514
 
+# We re-subsetted the training set using the following commented code to evaluate significance
+# of varibales for different subsets of the training set.
+
+# sub <- sample(1:length(train$Id), length(train$Id)/3)
+# train.set <- train[-sub,]
+# valid.set <- train[sub,]
+
+# Build new model using variables that are more significant
 final.model2 <- lm(SalePrice ~ MSSubClass+LotArea+OverallQual+Neighborhood+ YearBuilt+ExterQual+BsmtQual+BsmtExposure+BsmtFinSF1+`1stFlrSF`+
-                   `2ndFlrSF`+KitchenQual+ ScreenPorch+SaleCondition ,data=train)
+                     `2ndFlrSF`+KitchenQual+ ScreenPorch+SaleCondition ,data=train)
 summary(final.model2)
+
+# use the model to predict SalePrice on valid.set and calculate mse
+spfinal.2<- predict(final.model2, newdata=valid.set)
+mse.final2.valid<-mean((valid.set[,81]-spfinal.2)^2)
+mse.final2.valid
+# mse.final2.valid= 757702278
+
 # This is our best model. Had the highest R^2 and R^2 adjusted. Therefore, these are the significant variables:
 sig.cols <- c('MSSubClass', 'LotArea', 'Neighborhood', 'OverallQual', 'YearBuilt', 'ExterQual', 'BsmtQual', 'BsmtExposure', 'BsmtFinSF1', 
               "1stFlrSF", '2ndFlrSF', 'KitchenQual',  'ScreenPorch', 'SaleCondition')
@@ -214,16 +240,33 @@ final.model3 <- lm(SalePrice ~ MSSubClass+LotArea+YearBuilt+BsmtQual+BsmtFinSF1+
                      `2ndFlrSF`+KitchenQual+ ScreenPorch,data=train)
 
 summary(final.model3)
+
+# use the model to predict SalePrice on valid.set and calculate mse
+spfinal.3<- predict(final.model3, newdata=valid.set)
+mse.final3.valid<-mean((valid.set[,81]-spfinal.3)^2)
+mse.final3.valid
+# mse.final3.valid=1023837418
 # Did worse in Kaggle
 
+# Try more models 
 final.model4 <- lm(SalePrice ~ MSSubClass+OverallQual+LotArea+Neighborhood+YearBuilt+BsmtFinSF1+`1stFlrSF`+
                      `2ndFlrSF`+KitchenQual+ ScreenPorch,data=train)
 summary(final.model4)
 # Adjusted MSE decreased so is not likely to be a good model. Still, tested this in Kaggle and did worse.
 
+spfinal.4<- predict(final.model4, newdata=valid.set)
+mse.final4.valid<-mean((valid.set[,81]-spfinal.4)^2)
+mse.final4.valid
+# mse.final4.valid=862105332
 
+# Try more models 
 final.model5 <- lm(SalePrice ~ MSSubClass+LotArea+YearBuilt+`1stFlrSF`+`2ndFlrSF`+KitchenQual+ ScreenPorch,data=train)
 summary(final.model5)
+
+spfinal.5<- predict(final.model5, newdata=valid.set)
+mse.final5.valid<-mean((valid.set[,81]-spfinal.5)^2)
+mse.final5.valid
+# mse.final5.valid=1203332127
 # Adjusted MSE decreased so is not likely to be a good model. Still, tested this in Kaggle and did worse.
 
 # The model final.model2 performed best. This is the model we will use for the Kaggle Competition for Parametric.
@@ -280,11 +323,6 @@ test$LotFrontage <- as.integer(test$LotFrontage)
 # MSZoning(4), BsmtFinSF1(1), BsmtUnfSF(1),  KitchenQual(1), SaleType(1)
 
 
-# test_copy <- test[test$MSSubClass!=150,]   # mz-issue: MSSubClass has new level (150) in test data, just one obeservation
-# 
-# 
-# 
-# predictions <- predict(final.model, newdata=test_copy)
 
 # Filling in NAs for MSZoning
 test %>% group_by(MSZoning) %>% summarise(n())
@@ -433,9 +471,9 @@ for(i in 1:length(valid.set$Id)){
 }
 1-1
 test2 <- train.set[, c('MSSubClass','MSZoning','LotArea','LotShape','LandContour','Neighborhood','Condition2','OverallQual',
-  'YearBuilt','RoofStyle','RoofMatl','ExterQual','Foundation','BsmtQual','BsmtExposure','BsmtFinSF1','BsmtUnfSF',
-  '1stFlrSF' ,'2ndFlrSF','FullBath','KitchenQual','WoodDeckSF','ScreenPorch','MiscFeature','MiscVal','SaleType',
-  'SaleCondition', 'SalePrice')]
+                       'YearBuilt','RoofStyle','RoofMatl','ExterQual','Foundation','BsmtQual','BsmtExposure','BsmtFinSF1','BsmtUnfSF',
+                       '1stFlrSF' ,'2ndFlrSF','FullBath','KitchenQual','WoodDeckSF','ScreenPorch','MiscFeature','MiscVal','SaleType',
+                       'SaleCondition', 'SalePrice')]
 valid.set2 <- valid.set[, c('MSSubClass','MSZoning','LotArea','LotShape','LandContour','Neighborhood','Condition2','OverallQual',
                             'YearBuilt','RoofStyle','RoofMatl','ExterQual','Foundation','BsmtQual','BsmtExposure','BsmtFinSF1','BsmtUnfSF',
                             '1stFlrSF' ,'2ndFlrSF','FullBath','KitchenQual','WoodDeckSF','ScreenPorch','MiscFeature','MiscVal','SaleType',
@@ -518,14 +556,14 @@ for(i in 1:length(subsetted.test2$MSSubClass)){
   avg.price[i] <- mean(k.neighbors$SalePrice)
 }
 avg.price
-
+mean((subsetted.train2[,14]-avg.price)^2)
 predictions.table <- cbind(test$Id, avg.price)
 predictions.table[1,]
 
-write.table(predictions.table, file="C1-10_Non_Parametric3.csv", row.names=F, col.names = c("Id", "SalePrice"), sep=',')
+write.table(predictions.table, file="C1-10_Non_Parametric_k145.csv", row.names=F, col.names = c("Id", "SalePrice"), sep=',')
 
 predictions.table <- cbind(test$Id, avg.price)
-write.table(predictions.table, file="C1-10_Non_Parametric5.csv", row.names=F, col.names = c("Id", "SalePrice"), sep=',')
+write.table(predictions.table, file="C1-10_Non_Parametric6.csv", row.names=F, col.names = c("Id", "SalePrice"), sep=',')
 
 predictions.table[1,]
 
@@ -635,5 +673,3 @@ mean((valid.set2[,14]-avg.price)^2)
 
 # We have determine that a K value that is 7% of the number of observations gives the lowest
 # test MSE. We will use K= .07*1451=102 to optimize our KNN
-
-
