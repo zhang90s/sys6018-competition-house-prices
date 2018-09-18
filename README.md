@@ -7,11 +7,11 @@ Team Roles:
  
 Catherine Beazley 
 - Clean train data
-- Cross Validation of parametric approach
+- Variable selection for parametric models
 - Submit results to Kaggle
 
 Ruoyan Chen 
-- Variable selection for parametric models
+- Cross Validation of parametric approach
 - Variable selection for non-parametric (KNN) approach
 - Test run of KNN approach
 
